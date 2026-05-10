@@ -58,47 +58,90 @@ def predict(audio):
 
 	if isinstance(audio, tuple) and len(audio) == 2:
 		sr, arr = audio
-		wav, mfcc = _load_and_prepare_from_numpy(arr, sr)
 	elif isinstance(audio, np.ndarray):
 		# assume TARGET_SR
-		wav, mfcc = _load_and_prepare_from_numpy(audio, TARGET_SR)
+		sr, arr = TARGET_SR, audio
 	elif isinstance(audio, str) and os.path.exists(audio):
 		arr, sr = sf.read(audio, dtype="float32")
-		wav, mfcc = _load_and_prepare_from_numpy(arr, sr)
 	else:
 		return "Unsupported input", 0.0, None
 
+	# Convert to float32 if needed
+	arr = arr.astype("float32")
+	
+	# Handle stereo -> mono
+	if arr.ndim > 1:
+		arr = arr.mean(axis=1)
+	
+	# Resample if needed
+	if sr != TARGET_SR:
+		wav_tensor = torch.from_numpy(arr).unsqueeze(0)
+		wav_tensor = torchaudio.functional.resample(wav_tensor, sr, TARGET_SR)
+		arr = wav_tensor.squeeze(0).numpy()
+	
+	# Split into 2-second chunks if longer than 2 seconds
+	total_samples = len(arr)
+	chunk_size = TARGET_LENGTH
+	
+	if total_samples <= chunk_size:
+		chunks = [arr]
+	else:
+		# Split into overlapping chunks (50% overlap)
+		hop_size = chunk_size // 2
+		chunks = []
+		start = 0
+		while start < total_samples:
+			end = min(start + chunk_size, total_samples)
+			chunk = arr[start:end]
+			# Pad if necessary
+			if len(chunk) < chunk_size:
+				chunk = np.pad(chunk, (0, chunk_size - len(chunk)), mode='constant')
+			chunks.append(chunk)
+			start += hop_size
+			if end == total_samples:
+				break
+	
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	model = CNNLSTM()
-	model_path = "best.pth"
+	model_path = os.path.join(os.path.dirname(__file__), "best.pth")
 	if not os.path.exists(model_path):
-		return "Model not found (best.pth)", 0.0, _make_mel_image(wav)
+		return "Model not found (best.pth)", 0.0, _make_mel_image(torch.from_numpy(arr).unsqueeze(0))
+	
 	model.load_state_dict(torch.load(model_path, map_location=device))
 	model.to(device)
 	model.eval()
+	
+	probs = []
 	with torch.no_grad():
-		x = mfcc.to(device)
-		# ensure batch dim
-		if x.dim() == 3:
-			x = x.unsqueeze(0)
-		logits = model(x)
-		prob = float(torch.sigmoid(logits).cpu().item())
-		label = "fake" if prob > 0.5 else "real"
-
-	img = _make_mel_image(wav)
-	return label, prob, img
+		for chunk in chunks:
+			wav_chunk = torch.from_numpy(chunk).unsqueeze(0)
+			mfcc = torchaudio.transforms.MFCC(sample_rate=TARGET_SR, n_mfcc=40)(wav_chunk)
+			x = mfcc.to(device)
+			# ensure batch dim
+			if x.dim() == 3:
+				x = x.unsqueeze(0)
+			logits = model(x)
+			prob = float(torch.sigmoid(logits).cpu().item())
+			probs.append(prob)
+	
+	# Average probability across chunks
+	avg_prob = np.mean(probs)
+	label = "fake" if avg_prob > 0.5 else "real"
+	
+	# Use first chunk for visualization
+	img = _make_mel_image(torch.from_numpy(chunks[0]).unsqueeze(0))
+	return label, avg_prob, img
 
 
 def serve():
 	title = "Deep Fake Audio Detector"
-	desc = "Upload a short audio clip (<= 2s). Returns label, fake probability, and mel spectrogram image."
+	desc = "Upload an audio clip of any length. The model processes it in 2-second chunks with 50% overlap and returns an averaged prediction."
 	iface = gr.Interface(
 		fn=predict,
-		inputs=gr.Audio(source="upload", type="numpy", label="Audio"),
-		outputs=[gr.Textbox(label="Label"), gr.Number(label="Fake probability"), gr.Image(type="pil", label="Mel spectrogram")],
+		inputs=gr.Audio(type="numpy", label="Audio"),
+		outputs=[gr.Textbox(label="Label"), gr.Number(label="Fake probability"), gr.Image(type="pil", label="Mel spectrogram (first chunk)")],
 		title=title,
 		description=desc,
-		allow_flagging=False,
 	)
 	iface.launch()
 
