@@ -1,0 +1,21 @@
+# Virtual environment
+.venv/
+
+# Python cache and artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Editor files
+.vscode/
+.idea/
+.DS_Store
+
+# Model checkpoints and large outputs
+*.pth
+artifacts/
+manifest.csv
+
+# Logs
+*.log
