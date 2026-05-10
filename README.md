@@ -29,18 +29,68 @@ Files
 - `model.py`: `CNNLSTM` model.
 - `train.py`: training loop and simple validation.
 
-Artifacts produced by the pipeline
+Visualizations and Artifacts
 
-The training run generates an `artifacts/` folder that contains visualizations and CSV outputs. Key artifacts produced in this project are:
+The training run generates an `artifacts/` folder that contains visualizations and CSV outputs. Below are the key visualizations produced in this project:
 
-- `real_waveform.png` and `fake_waveform.png`
-- `real_spectrogram.png` and `fake_spectrogram.png`
-- `real_mel.png` and `fake_mel.png`
-- `real_mfcc.png` and `fake_mfcc.png`
-- `label_distribution.png`
-- `training_history.csv` and `test_predictions.csv`
-- `training_loss.png`, `training_accuracy.png`, `val_auc.png`
-- `confusion_matrix.png`, `roc_curve.png`, `pr_curve.png`, `probability_distribution.png`
+## Audio Sample Visualizations
+
+### Real Audio
+
+**Waveform:**
+![Real Waveform](artifacts/real_waveform.png)
+
+**Spectrogram:**
+![Real Spectrogram](artifacts/real_spectrogram.png)
+
+**Mel-Spectrogram:**
+![Real Mel-Spectrogram](artifacts/real_mel.png)
+
+**MFCC:**
+![Real MFCC](artifacts/real_mfcc.png)
+
+### Fake Audio
+
+**Waveform:**
+![Fake Waveform](artifacts/fake_waveform.png)
+
+**Spectrogram:**
+![Fake Spectrogram](artifacts/fake_spectrogram.png)
+
+**Mel-Spectrogram:**
+![Fake Mel-Spectrogram](artifacts/fake_mel.png)
+
+**MFCC:**
+![Fake MFCC](artifacts/fake_mfcc.png)
+
+## Dataset Statistics
+
+![Label Distribution](artifacts/label_distribution.png)
+
+## Training Curves
+
+**Training Loss:**
+![Training Loss](artifacts/training_loss.png)
+
+**Training Accuracy:**
+![Training Accuracy](artifacts/training_accuracy.png)
+
+**Validation AUC:**
+![Validation AUC](artifacts/val_auc.png)
+
+## Evaluation Metrics
+
+**Confusion Matrix:**
+![Confusion Matrix](artifacts/confusion_matrix.png)
+
+**ROC Curve:**
+![ROC Curve](artifacts/roc_curve.png)
+
+**Precision-Recall Curve:**
+![PR Curve](artifacts/pr_curve.png)
+
+**Prediction Probability Distribution:**
+![Probability Distribution](artifacts/probability_distribution.png)
 
 Final metrics from the most recent run included in this folder
 
