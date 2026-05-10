@@ -14,7 +14,7 @@ __pycache__/
 
 # Model checkpoints and large outputs
 *.pth
-artifacts/
+artifacts/*
 !artifacts/*.png
 manifest.csv
 *.csv
