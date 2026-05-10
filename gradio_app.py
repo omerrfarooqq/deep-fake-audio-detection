@@ -114,12 +114,10 @@ def predict(audio):
 	probs = []
 	with torch.no_grad():
 		for chunk in chunks:
-			wav_chunk = torch.from_numpy(chunk).unsqueeze(0)
-			mfcc = torchaudio.transforms.MFCC(sample_rate=TARGET_SR, n_mfcc=40)(wav_chunk)
-			x = mfcc.to(device)
-			# ensure batch dim
-			if x.dim() == 3:
-				x = x.unsqueeze(0)
+			# chunk is 1D numpy array of shape (32000,)
+			wav_chunk = torch.from_numpy(chunk).unsqueeze(0)  # (1, 32000)
+			mfcc = torchaudio.transforms.MFCC(sample_rate=TARGET_SR, n_mfcc=40)(wav_chunk)  # (1, 40, time)
+			x = mfcc.unsqueeze(0).to(device)  # (1, 1, 40, time) - add batch dim
 			logits = model(x)
 			prob = float(torch.sigmoid(logits).cpu().item())
 			probs.append(prob)
