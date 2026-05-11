@@ -116,15 +116,17 @@ def predict(audio):
 		for chunk in chunks:
 			# chunk is 1D numpy array of shape (32000,)
 			wav_chunk = torch.from_numpy(chunk).unsqueeze(0)  # (1, 32000)
-			mfcc = torchaudio.transforms.MFCC(sample_rate=TARGET_SR, n_mfcc=40)(wav_chunk)  # (1, 40, time)
-			x = mfcc.unsqueeze(0).to(device)  # (1, 1, 40, time) - add batch dim
+			mfcc = torchaudio.transforms.MFCC(sample_rate=TARGET_SR, n_mfcc=40)(wav_chunk)  # (channels=1, 40, time)
+			# remove channel dim so shape is (n_mfcc, time), then add batch dim -> (1, n_mfcc, time)
+			mfcc = mfcc.squeeze(0)
+			x = mfcc.unsqueeze(0).to(device)
 			logits = model(x)
 			prob = float(torch.sigmoid(logits).cpu().item())
 			probs.append(prob)
 	
 	# Average probability across chunks
 	avg_prob = np.mean(probs)
-	label = "fake" if avg_prob > 0.5 else "real"
+	label = "fake" if avg_prob > 0.8 else "real"
 	
 	# Use first chunk for visualization
 	img = _make_mel_image(torch.from_numpy(chunks[0]).unsqueeze(0))
